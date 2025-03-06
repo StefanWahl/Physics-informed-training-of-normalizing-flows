@@ -1,0 +1,4 @@
+data
+results
+pinf.egg-info/*
+**__pycache__
