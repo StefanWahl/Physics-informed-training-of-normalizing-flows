@@ -4,6 +4,7 @@ import torch
 from typing import Union,Callable
 from functools import partial
 import torch.nn as nn
+import numpy as np
 
 from pinf.models.utils import activation_dict
 
@@ -101,6 +102,41 @@ class WrappedConditionalCouplingBlock(Fm.InvertibleModule):
         """
         Compute the dimensionality of the output of the block
         """
+        return input_dims
+
+class FixedGlobalScaling(Fm.InvertibleModule):
+    def __init__(self,dims_in,alpha = None,beta = None,dims_c = None):
+        """
+        Global scaling and offset 
+
+        parameters:
+            dims_in:            Tupel containing a list representing the shape of an input instance.
+            alpha:              Global scaling
+            beta:               Global offset
+            dims_c:             Dimensinality of the condition as passed to this block during a call. Not the dimensinality of the condition expected by the internal block.
+        """
+        super().__init__(dims_in,dims_c)
+
+        self.alpha = alpha
+        self.beta = beta
+
+    def forward(self,x_or_z,c = None,rev = False,jac = True):
+
+        # Used for sampling
+        if rev:
+            y = (x_or_z[0] - self.beta) / self.alpha
+            jac = - np.log(self.alpha) * torch.prod(torch.tensor(x_or_z[0].shape[1:]))
+        
+        # Use for density evaluation
+        else:
+            y =  x_or_z[0] * self.alpha + self.beta
+            jac = np.log(self.alpha) * torch.prod(torch.tensor(x_or_z[0].shape[1:]))
+
+        assert(y.shape == x_or_z[0].shape)
+
+        return (y,),jac * torch.ones(x_or_z[0].shape[0]).to(x_or_z[0].device)
+    
+    def output_dims(self,input_dims):
         return input_dims
 
 ######################################################################################################################################

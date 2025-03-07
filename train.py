@@ -14,21 +14,29 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger 
 
 from pinf.models.construct_INN_2D_GMM import set_up_sequence_INN_2D_GMM
+from pinf.models.construct_INN_2D_GMM_two_parameters import set_up_sequence_INN_2D_ToyExample_two_parameters
 
-from pinf.datasets.datasets import DataSet2DGMM
+from pinf.datasets.datasets import (
+    DataSet2DGMM,
+    DataSet_2D_ToyExample_external_two_parameters
+    )
 
 from pinf.trainables.GMM import TrainingObject_2D_GMM
+from pinf.trainables.GMM_two_params import TrainingObject_2D_ToyExample_two_external_parameters
 
 data_set_class_dict = {
     "2D_GMM":DataSet2DGMM,
+    "2D_ToyExample_two_external_parameters":DataSet_2D_ToyExample_external_two_parameters
 }
 
 INN_constructor_dict = {
-    "set_up_sequence_INN_2D_GMM":set_up_sequence_INN_2D_GMM
+    "set_up_sequence_INN_2D_GMM":set_up_sequence_INN_2D_GMM,
+    "set_up_sequence_INN_2D_ToyExample_two_parameters":set_up_sequence_INN_2D_ToyExample_two_parameters
 }
 
 trainable_dict = {
     "2D_GMM":TrainingObject_2D_GMM,
+    "2D_ToyExample_two_external_parameters":TrainingObject_2D_ToyExample_two_external_parameters
 }
 
 def get_configuration(args):
@@ -173,6 +181,10 @@ if __name__ == "__main__":
     if config["config_data"]["data_set_name"] == "2D_GMM":
         day_date = date.today()
         logging_path = f'./results/runs_2D_GMM/{day_date}_{args.tag}/'
+    
+    elif config["config_data"]["data_set_name"] == "2D_ToyExample_two_external_parameters":
+        day_date = date.today()
+        logging_path = f"./results/runs_2D_ToyExample_two_external_parameters/{day_date}_{args.tag}/"
     
     elif config["config_data"]["data_set_name"] == "ScalarTheory":
         day_date = date.today()

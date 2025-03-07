@@ -1,0 +1,18 @@
+{
+    "run_evaluations":true,
+    "plot_freq":10,
+    "log_scalars_freq":50,
+    "validation_freq":5,
+    "batch_size_validation":500,
+    "samples_validation_set":5000,
+    "alpha_list_validation":[0.2,0.3,0.4,0.5,0.6,0.7,0.8],
+    "beta_list_validation":[0.25,0.33333,0.5,1.0,2.0,3.0,4.0],
+    "grid_lim_list":[
+        [-15,15],
+        [-15,15]
+    ],
+    "grid_res_list":[
+        150,
+        150
+    ]
+}

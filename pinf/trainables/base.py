@@ -4,6 +4,7 @@ from functools import partial
 import numpy as np
 import lightning as L
 import copy
+from typing import List,Union
 
 from pinf.trainables.utils import (
     optimizer_dict,
@@ -11,8 +12,18 @@ from pinf.trainables.utils import (
     remove_non_serializable
     )
 
-from pinf.losses.factory import DataFreeLossFactory
-from pinf.models.INN import INN_Model
+from pinf.losses.factory import (
+    DataFreeLossFactory,
+    DataFreeLossFactory_MultipleParameters
+    )
+from pinf.models.INN import (
+    INN_Model,
+    INN_Model__MultipleExternalParameters
+    )
+
+##################################################################################################
+# Power-scaling
+##################################################################################################
 
 class BaseTrainableObject_TemperatureScaling(L.LightningModule):
     def __init__(self,INN:INN_Model,config:dict)->None:
@@ -117,7 +128,7 @@ class BaseTrainableObject_TemperatureScaling(L.LightningModule):
 
         return l * self.config_training["regularization_data_free"]
 
-    def configure_optimizers(self)->None:
+    def configure_optimizers(self)->dict:
         """
         Initialize the optimizer and the learning rate scheduler
         """
@@ -173,7 +184,7 @@ class BaseTrainableObject_TemperatureScaling(L.LightningModule):
                     }
             }
         
-    def state_dict(self):
+    def state_dict(self)->dict:
         """
         Return the state dict of the invertible function
         """
@@ -301,7 +312,7 @@ class BaseTrainableObject_TemperatureScaling(L.LightningModule):
     def validation(self):
         pass
     
-    def __compute_nll_objective(self,x_batch:torch.tensor,beta_batch:torch.tensor):
+    def __compute_nll_objective(self,x_batch:torch.tensor,beta_batch:torch.tensor)->torch.tensor:
         """
         Compute the negative log-likelihood objective.
 
@@ -317,7 +328,7 @@ class BaseTrainableObject_TemperatureScaling(L.LightningModule):
 
         return nll
     
-    def __get_grad_magnitude(self,loss_i:torch.tensor):
+    def __get_grad_magnitude(self,loss_i:torch.tensor)->float:
         """
         Compute the magnitude of the gradient of a loss with respect to the model parameters.
 
@@ -368,3 +379,357 @@ class BaseTrainableObject_TemperatureScaling(L.LightningModule):
 
             self.lambda_bc = self.alpha_weighting * self.lambda_bc + (1 - self.alpha_weighting) *  (mag_PI + mag_nll) / (mag_nll+self.epsilon)
             self.lambda_r = self.alpha_weighting * self.lambda_r + (1 - self.alpha_weighting) *  (mag_PI + mag_nll) / (mag_PI+self.epsilon)
+
+##################################################################################################
+# Multiple external parameters
+##################################################################################################
+
+class BaseTrainableObject_MultipleExternalParameters(L.LightningModule):
+    def __init__(self,INN:INN_Model__MultipleExternalParameters,config:dict)->None:
+        """
+        Base class for training of a Normalizing flow conditioned one multiple external parameters.
+
+        parameters:
+            INN:    Normalizing flow to train
+            config: Configuration file
+        """
+
+        super(BaseTrainableObject_MultipleExternalParameters, self).__init__()
+
+        # Transformation for the data augmentation
+        self.transformation = Trafo.Compose([])
+        
+        # Fixed ratio between the update strenght of the two loss contributions
+        if "fixed_relative_weighting" in config["config_training"].keys():
+            self.fixed_relative_weighting = config["config_training"]["fixed_relative_weighting"]
+
+        if not config["config_training"]["use_nll_loss"]:
+            config["config_training"]["adaptive_weighting"] = False
+
+        # Adaptive weighting for different loss contributions
+        if "alpha_adaptive_weighting" in config["config_training"].keys():
+            self.lambda_bc = 1.0
+            self.lambda_r = 1e-3
+
+            self.freq_update_weightning = 25
+            self.alpha_weighting = config["config_training"]["alpha_adaptive_weighting"]
+            self.epsilon = 1e-4
+
+        self.INN = INN
+        self.config = config
+        self.config_training = config["config_training"]
+
+        # Save the configuration file
+        cleaned_config = remove_non_serializable(copy.deepcopy(self.config))
+        self.save_hyperparameters(cleaned_config)
+
+        ####################################################################################################################################
+        #Initialize the data free model
+        ####################################################################################################################################
+
+        # Change the lengths of the different phases of beta sampling from epochs to iterations
+        if "regularization_data_free" in self.config_training.keys():
+            self.config["config_training"]["regularization_data_free_start"] = config["config_training"]["n_batches_per_epoch"] * self.config["config_training"]["regularization_data_free_start"]
+            self.config["config_training"]["regularization_data_free_full"] = config["config_training"]["n_batches_per_epoch"] * self.config["config_training"]["regularization_data_free_full"]
+
+        else:
+            self.config["config_training"]["regularization_data_free_start"] = None
+
+        if (self.config["config_training"]["regularization_data_free_start"] is not None) and ("t_burn_in" in self.config["config_training"]["loss_model_params"].keys()):
+            self.config["config_training"]["loss_model_params"]["t_burn_in"] = config["config_training"]["n_batches_per_epoch"] * self.config["config_training"]["loss_model_params"]["t_burn_in"]
+            self.config["config_training"]["loss_model_params"]["t_full"] = config["config_training"]["n_batches_per_epoch"] * self.config["config_training"]["loss_model_params"]["t_full"]
+
+        #Initialize the loss model
+        factory = DataFreeLossFactory_MultipleParameters()
+        self.data_free_loss_model = factory.create(
+            key = self.config["config_training"]["data_free_loss_mode"],
+            config=config
+        )
+
+        self.iteration = 0
+        self.best_mean_KL = None
+
+    def training_step(self,batch:tuple,batch_idx:int)->dict:
+        """
+        Training step
+
+        parameters:
+            batch:      Batch of training data
+            batch_idx:  Index of the batch
+
+        returns:
+            dictionary containing the loss
+        """
+
+
+        #Log the learning rate
+        self.log_dict({"parameters/lr":self.lr_schedulers().get_last_lr()[0]})
+
+        loss = torch.zeros(1).to(self.device)
+
+        #NLL loss
+        if self.config["config_training"]["use_nll_loss"]:
+            parameter_list = batch[:-1]
+            x_batch_plain = batch[-1]
+  
+            x_batch = self.transformation(x_batch_plain)
+            assert(x_batch.shape == x_batch_plain.shape)
+
+            nll = self.__compute_nll_objective(x_batch=x_batch,parameter_list=parameter_list)
+
+            loss = loss + nll
+            self.log_dict({"loss/nll":nll})
+
+        #Data free loss contribution
+        a = self.regularization_data_free
+        if ((self.data_free_loss_model is not None) and (a > 0.0)) or not self.config["config_training"]["use_nll_loss"]:
+            loss_data_free = self.data_free_loss_model(
+                INN = self.INN,
+                get_eval_points=self.get_evaluation_points,
+                epoch = self.current_epoch,
+                logger = self.logger
+            )
+
+            if self.config["config_training"]["adaptive_weighting"]:    
+                a = self.fixed_relative_weighting * self.lambda_r / self.lambda_bc
+
+            loss = loss + a *  loss_data_free
+
+            self.log_dict({"loss/data_free":loss_data_free})
+        
+        self.log_dict({"parameters/weighting_data_free":a,"loss/total_loss":loss})
+
+        #Update counter
+        self.iteration += 1
+
+        #Update internal counter of the data free model
+        if self.data_free_loss_model is not None:
+            self.data_free_loss_model.iteration += 1
+        
+        if self.config["config_training"]["use_nll_loss"] and (self.data_free_loss_model is not None):
+            self.__update_lambda_PINF(x_batch,parameter_list,a)
+
+        return {"loss":loss}
+    
+    def configure_optimizers(self)->dict:
+        """
+        Initialize the optimizer and the learning rate scheduler
+        """
+
+        params = self.INN.parameters()
+
+        optimizer = optimizer_dict[self.config_training["optimizer_type"]](params = params, lr = self.config_training["lr"], weight_decay = self.config_training["weight_decay"])
+
+        if self.config["config_training"]["lr_scheduler_config"]["mode"]  == "exponential":
+            
+            gamma = self.config["config_training"]["lr_scheduler_config"]["final_lr_ratio"] ** (1 / self.config_training["n_epochs"])
+            scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer,gamma = gamma)
+            interval = "epoch"
+
+        elif self.config["config_training"]["lr_scheduler_config"]["mode"]  == "multiCycle":
+            
+            epochs_per_cycle = self.config["config_training"]["lr_scheduler_config"]["epochs_per_cycle"]
+            print("epochs per cycle: ",epochs_per_cycle)
+
+            learning_rates = [self.config_training["lr"]]
+
+            for i in range(len(self.config["config_training"]["lr_scheduler_config"]["lr_decay_factors"])):
+                learning_rates.append(learning_rates[-1] * self.config["config_training"]["lr_scheduler_config"]["lr_decay_factors"][i])
+            print("learning rates: ",learning_rates)
+
+            n_cycles = len(epochs_per_cycle)
+
+            scheduler = MultiCycleLR(
+                optimizer=optimizer,
+                epochs_per_cycle=epochs_per_cycle,
+                n_cycles = n_cycles,
+                steps_per_epoch=self.config_training["n_batches_per_epoch"],
+                max_lrs = learning_rates
+            )
+            interval = "step"
+
+        elif self.config["config_training"]["lr_scheduler_config"]["mode"]  == "oneCycle":
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                max_lr = self.config_training["lr"],
+                steps_per_epoch = self.config_training["n_batches_per_epoch"],
+                epochs = self.config_training["n_epochs"],
+            )
+            interval = "step"
+        
+        else:
+            raise ValueError("Unknown lr scheduler mode")
+        
+        return {"optimizer":optimizer,
+                "lr_scheduler":{
+                    "scheduler":scheduler,
+                    "interval":interval
+                    }
+            }
+        
+    def state_dict(self)->dict:
+        """
+        Return the statedict of the invertible function
+        """
+
+        state_dict = {"INN":self.INN.inn.state_dict()}
+
+        if self.config["config_model"]["process_beta_parameters"]["mode"] == "learnable":
+            state_dict["Embedder"] = self.INN.beta_processing_function.state_dict()
+
+        return state_dict
+
+    def __compute_nll_objective(self,x_batch:torch.tensor,parameter_list:List[Union[torch.tensor,float]])->torch.tensor:
+        """
+        Compute the negative log-likelihood objective.
+
+        parameters:
+            x_batch:        Batch of training data
+            parameter_list: List with batches of condition values corresponding to the training data
+
+        returns:
+            nll:        Negative log-likelihood objective
+        """
+
+        nll = - self.INN.log_prob(x = x_batch,parameter_list = parameter_list).mean()
+
+        return nll
+    
+    def __get_grad_magnitude(self,loss_i:torch.tensor)->float:
+        """
+        Compute the magnitude of the gradient of a loss with respect to the model parameters.
+
+        parameters:
+            loss_i:     Loss for which the gradient magnitude is computed
+
+        returns:
+            grad_mag:   Magnitude of the gradient with respect to the model parameters
+        """
+
+        opt = self.optimizers()
+        opt.zero_grad()
+
+        loss_i.backward()
+    
+        grad_mag = 0
+
+        for name, param in self.INN.inn.named_parameters():
+            if param.requires_grad and (param.grad is not None):
+                grad_mag += param.grad.pow(2).sum().detach().item()
+        grad_mag = np.sqrt(grad_mag)
+
+        return grad_mag
+
+    def get_evaluation_points(self,parameter_list:List[Union[torch.tensor,float]])->torch.Tensor:
+        """
+        Sample points for the evaluation of the physics-informed loss contribution
+
+        parameters:
+            parameter_list: List with batches of condition values where evaluation points should be sampled
+
+        returns:
+            x:              Batch of points following the model distribution at the specified condition values
+        """
+
+        with torch.no_grad():
+            x = self.INN.sample(n_samples = len(parameter_list[0]),parameter_list = parameter_list)
+
+        return x.detach()
+    
+    def __update_lambda_PINF(self,x_batch:torch.Tensor,parameter_list:List[Union[torch.tensor,float]],a:float)->None:
+        """
+        Update the parameters of the adaptive loss balancing scheme.
+
+        parameters:
+            x_batch:        Batch of training data
+            parameter_list: List with batches of condition values corresponding to the training data
+            a:              Indicator if loss balancing is applied
+        """
+
+        if self.config["config_training"]["adaptive_weighting"] and (self.iteration % self.freq_update_weightning) == 0 and a > 0:
+            
+            #Compute the magnitude of the gradient for the nll loss
+            eval_nll = self.__compute_nll_objective(x_batch=x_batch,parameter_list=parameter_list)
+            mag_nll = self.__get_grad_magnitude(loss_i=eval_nll)
+
+            eval_loss_data_free = self.data_free_loss_model(
+                INN = self.INN,
+                get_eval_points=self.get_evaluation_points,
+                epoch = self.current_epoch,
+                logger = self.logger
+            )
+            mag_PI = self.__get_grad_magnitude(loss_i=eval_loss_data_free)
+
+            self.lambda_bc = self.alpha_weighting * self.lambda_bc + (1 - self.alpha_weighting) *  (mag_PI + mag_nll) / (mag_nll+self.epsilon)
+            self.lambda_r = self.alpha_weighting * self.lambda_r + (1 - self.alpha_weighting) *  (mag_PI + mag_nll) / (mag_PI+self.epsilon)
+    
+    @property
+    def regularization_data_free(self)->float:
+        """
+        Compute the weighting of the TS term in the total loss
+        """
+
+        #No regularization
+        if not self.config["config_training"]["use_nll_loss"]:
+            return 1.0
+
+        #No regularization at the beginning
+        if (self.data_free_loss_model is None) or (self.iteration < self.config_training["regularization_data_free_start"]):
+            return 0.0
+    
+        #Full regularization after the ramp up phase
+        elif self.iteration >= self.config_training["regularization_data_free_full"]:
+            l = 1.0
+        
+        elif self.config_training["regularization_data_free_full"] == self.config_training["regularization_data_free_start"]:
+            l = 1.0
+        
+        #Linear interpolation in between
+        else:
+            l = (self.iteration - self.config_training["regularization_data_free_start"]) / (self.config_training["regularization_data_free_full"] - self.config_training["regularization_data_free_start"])
+
+        return l * self.config_training["regularization_data_free"]
+
+    def validation(self):
+        """
+        Evaluate the model performance by computing the average validation nll
+        """
+
+        if ((self.current_epoch + 1) % self.config["config_evaluation"]["validation_freq"] == 0) or (self.current_epoch == 0) or (self.current_epoch + 1 == self.config_training["n_epochs"]):
+
+            KL_list = []
+
+            with torch.no_grad():
+                self.INN.train(False)
+
+                for key in self.validation_data_loader_dict.keys():
+
+                    DL_i = self.validation_data_loader_dict[key]
+
+                    log_p_theta_val = torch.zeros([0])
+
+                    for j,batch in enumerate(DL_i):
+                            
+                        parameter_list = batch[:-1]
+                        x_batch = batch[-1]
+
+                        #Compute the log likelihood of the validation set
+                        log_p_theta_val_i = self.INN.log_prob(x = x_batch.to(self.config["device"]),parameter_list=[param_i.to(self.device) for param_i in parameter_list])
+                        log_p_theta_val = torch.cat((log_p_theta_val,log_p_theta_val_i.detach().cpu()),0)
+
+                        #Get the log likelihood of the validation set
+                    nll_i = - log_p_theta_val.mean().item()
+                    KL_list.append(nll_i)
+
+            self.INN.train(True)
+
+            if (self.best_mean_KL is None) or (self.best_mean_KL > np.mean(KL_list)):
+                self.best_mean_KL = np.mean(KL_list)
+                self.best_epoch_mean_KL = self.current_epoch
+
+            self.current_mean_KL = np.mean(KL_list)
+
+            self.log_dict({f"model_performance/mean_validation_KL":self.current_mean_KL})
+
+    def on_train_epoch_end(self):
+        self.validation()

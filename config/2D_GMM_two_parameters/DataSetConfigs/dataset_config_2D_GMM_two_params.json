@@ -1,0 +1,8 @@
+{
+    "data_set_name":"2D_ToyExample_two_external_parameters",
+    "init_data_set_params":{
+        "d":2,
+        "parameter_coordinates":[[0.5,1.0]],
+        "n_samples":100000
+    }
+}
