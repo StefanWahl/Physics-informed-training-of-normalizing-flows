@@ -241,7 +241,7 @@ class INN_Model__MultipleExternalParameters():
             path:   Location of the stored parameters.
         """
 
-        state_dict = torch.load(path)["state_dict"]
+        state_dict = torch.load(path,weights_only = False)["state_dict"]
 
         print("Load state dict for invertible function")
 
