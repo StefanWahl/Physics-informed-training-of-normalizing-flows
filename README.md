@@ -1,7 +1,12 @@
-# Physics-informed-training-of-normalizing-flows
+## Physics-informed-training-of-normalizing-flows
 
-#Linking the data path
+# Clone the repository
 
+```shell script
+git clone --recursive https://github.com/StefanWahl/Physics-informed-training-of-normalizing-flows.git
+```
+
+# Linking paths
 Use this to link your local location for the experimental results and data sets.
 
 ```shell script
@@ -10,7 +15,7 @@ ln -s <Your_local_data_folder> data
 ln -s <Your_local_results_folder> results
 ```
 
-#Create a new environment
+# Create a new environment
 
 ```shell script
 conda create -n pinf python=3.10.
@@ -21,13 +26,13 @@ conda activate pinf
 
 Use this to link your local location for the experimental results and data sets.
 
-#Install the package:
+# Install the package:
 
 ```shell script
 pip install -e .
 ```
 
-#Install additional packages
+# Install additional packages
 
 The following repositories have to be installed:
 

@@ -1,0 +1,31 @@
+{
+    "lr":2e-4,
+    "lr_scheduler_config":{
+        "mode":"multiCycle",
+        "lr_decay_factors":[1.0],
+        "epochs_per_cycle":[40,560]
+    },
+    "use_nll_loss":true,
+    "data_free_loss_mode":"reverse_KL",
+    "log_p_target_name":"ScalarTheory",
+    "log_p_target_kwargs":{"lambdas":0.02},
+    "weight_decay":0.0,
+    "batch_size_nll":1024,
+    "n_epochs":600,
+    "enable_checkpointing":true,
+    "fixed_relative_weighting":1.0,
+    "regularization_data_free_start":40,
+    "regularization_data_free_full":500,
+    "loss_model_params":{
+        "beta_min":0.21,
+        "beta_max":0.33,
+        "bs":2048
+    },
+    "alpha_adaptive_weighting":0.1,
+    "regularization_data_free":1.0,
+    "adaptive_weighting":true,
+    "optimizer_type":"Adam",
+    "random_seed":0,
+    "gradient_clip_val":1.0,
+    "files_to_save":["TS_PINF_multicycle_lr_scheduler.py","TS_PINF_datasets.py","TS_PINF_loss.py","TS_PINF_models.py","TS_PINF_trainables.py","TS_PINF_utils.py","TS_PINF_optuna_hp_optimization.py"]
+}

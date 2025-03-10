@@ -57,9 +57,22 @@ def dS_2D_ToyExample_two_parameters_dbeta(x:torch.Tensor,parameter_list:List[tor
 
     return S_2D_ToyExample_two_parameters(x = x,parameter_list = parameter_list_new,device = device)
 
+##################################################################################################
+# Scalar Theory
+##################################################################################################
+
+def dS_dkappa_ScalarTheory(mus,parameter_list:List[torch.Tensor|float] = None,device:str = None):
+
+    actions = - 2  * torch.roll(input=mus,shifts=1,dims=2) * mus
+    actions += - 2 * torch.roll(input=mus,shifts=1,dims=3) * mus
+
+    actions = torch.sum(input=actions,dim = [1,2,3])
+
+    return actions
 
 dS_dparam_dict = {
     "2D_GMM":dS_dbeta_2D_GMM,
+    "ScalarTheory":dS_dkappa_ScalarTheory,
 }
 
 dS_dparam_dict_multiple_parameters = {

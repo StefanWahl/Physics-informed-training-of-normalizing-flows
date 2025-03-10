@@ -1,0 +1,47 @@
+{
+    "lr":2e-4,
+    "lr_scheduler_config":{
+        "mode":"multiCycle",
+        "lr_decay_factors":[3.0],
+        "epochs_per_cycle":[40,560]
+    },
+    "use_nll_loss":true,
+    "data_free_loss_mode":"PINF_parallel_Ground_Truth_one_param_V2",
+    "weight_decay":0.0,
+    "batch_size_nll":1024,
+    "n_epochs":600,
+    "enable_checkpointing":true,
+    "fixed_relative_weighting":1.1,
+    "regularization_data_free_start":40,
+    "regularization_data_free_full":500,
+    "symmetry_in_get_evaluation_points":true,
+    "noise_level_in_get_evaluation":0.4,
+    "loss_model_params":{
+        "param_min":0.21,
+        "param_max":0.33,
+        "n_reps":1,
+        "residual_processing_parameters":{
+            "mode":"Huber",
+            "delta":7.0
+        },
+        "bs":2048,
+        "epsilon_causality_weight":1.5e-02,
+        "epsilon_causality_decay_factor":0.99,
+        "n_points_param_grid":148,  
+        "alpha_running_EX_A":0.1,
+        "average_importance_weights":true,
+        "update_freq_running_average_EX_A":2500,
+        "n_samples_expectation_computation":1000,
+        "bs_expectation_computation":1000,
+        "alpha_running_loss": 2.5e-05,
+        "init_param_grid_in_log_space":true,
+        "epsilon_reduction_factor_inbetween":0.3
+    },
+    "alpha_adaptive_weighting":0.1,
+    "regularization_data_free":1.0,
+    "adaptive_weighting":true,
+    "optimizer_type":"Adam",
+    "random_seed":0,
+    "gradient_clip_val":1000.0,
+    "files_to_save":["TS_PINF_multicycle_lr_scheduler.py","TS_PINF_datasets.py","TS_PINF_loss.py","TS_PINF_models.py","TS_PINF_trainables.py","TS_PINF_utils.py","TS_PINF_optuna_hp_optimization.py"]
+}

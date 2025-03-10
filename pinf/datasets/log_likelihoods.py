@@ -74,13 +74,50 @@ def log_p_2D_ToyExample_two_parameters(x:torch.Tensor,parameter_list:List[torch.
 
     return log_p
 
+##################################################################################################
+# Scalar Theory
+##################################################################################################
+
+def log_p_ScalarTheory(x:torch.tensor,beta_tensor:List[torch.Tensor|float],lambdas:List[torch.Tensor|float],device:str = None)->torch.tensor:
+    '''
+    True action function for 2D lattice.
+    
+    parameters:
+        x:              States
+        beta_tensor:    Tensor containing the hopping-parameters
+        lambdas:        Tensor containing the quadric-couplings
+        device:         Device on which the experiment runs
+
+    returns:
+        actions:    Containing the action of the different states
+    '''
+    mus = x
+    kappas = beta_tensor
+
+    if isinstance(kappas,float):
+        kappas = torch.ones(len(mus)).to(mus.device) * kappas
+    if isinstance(lambdas,float):
+        lambdas = torch.ones(len(mus)).to(mus.device) * lambdas
+
+    lambdas = lambdas.squeeze()
+    kappas = kappas.squeeze()
+
+    # Get the quartic coupling
+    actions = (1 - 2 * lambdas[:,None,None,None]) * mus.pow(2) +lambdas[:,None,None,None] * mus.pow(4)
+
+    # Get the term depending on the hopping parameter
+    actions += - 2 * kappas[:,None,None,None] * torch.roll(input=mus,shifts=1,dims=2) * mus
+    actions += - 2 * kappas[:,None,None,None] * torch.roll(input=mus,shifts=1,dims=3) * mus
+
+    actions = torch.sum(input=actions,dim = [1,2,3])
+
+    return - actions
 
 log_p_target_dict = {
     "2D_GMM":log_p_2D_GMM,
+    "ScalarTheory":log_p_ScalarTheory
 }
 
 log_p_target_dict_multiple_parameters = {
     "2D_ToyExample_two_external_parameters":log_p_2D_ToyExample_two_parameters
 }
-
-

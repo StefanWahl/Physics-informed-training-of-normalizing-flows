@@ -1,0 +1,9 @@
+{   
+    "verbose":true,
+    "sub_config_files":{
+        "config_model":     "ModelConfigs/N_8/model_config_2D_ScalarTheory_mixed_coupling_blocks_N8.json",
+        "config_training":  "TrainingSetupConfigs/N_8/training_config_NLL_2D_ScalarTheory_N8.json",
+        "config_evaluation":"EvaluationConfigs/N_8/evaluation_config_2D_ScalarTheory_N8.json",
+        "config_data":      "DataSetConfigs/N_8/dataset_config__2D_ScalarTheory_N8.json"
+    }
+}

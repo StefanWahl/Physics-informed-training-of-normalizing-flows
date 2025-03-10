@@ -1,6 +1,7 @@
 import torch
 from typing import Callable
 import matplotlib.pyplot as plt
+import numpy as np
 
 #Create coordinate grid
 def get_grid_n_dim(res_list:list,lim_list:list):
@@ -96,3 +97,106 @@ def plot_pdf_2D(pdf_grid:torch.tensor,x_grid:torch.tensor,y_grid:torch.tensor,ax
 
     if return_im:
         return im
+
+#Plotting for the scalar Theory
+def bootstrap(x,s,args,n_bootstrap = 250):
+    '''
+    NOTE:
+
+    This function is taken from the the file
+
+    https://github.com/StefanWahl/Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions/blob/main/ScalarTheory/utils.py
+
+    of the repository 
+
+    https://github.com/StefanWahl/Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions
+
+    authored by Stefan Wahl under MIT license.
+
+    Get an approximation foe the error and the mean by using the bootstrap method.
+
+    parameters:
+        x:                  Full time series
+        s:                  Function returning the examined property. First argument must be the time series.
+        args:               Dictionary containing additional arguments for s
+        n_bootstrap:        Number of bootstrap samples
+
+    returns:
+        mean:   Approximation for the value of s based on x
+        error:  Approximation for the error of s based on x
+    '''
+
+    #Estimate the error of the examined quantity
+    samples = np.zeros(n_bootstrap)
+
+    for i in range(n_bootstrap):
+        indices = np.random.randint(0,len(x),len(x))
+        subset = x[indices]
+
+        samples[i] = s(subset,**args)
+
+    mean_samples = samples.mean()
+    error = np.sqrt(np.square(samples - mean_samples).sum() / (n_bootstrap - 1))
+
+    #Get the mean of the evaluated property
+    mean = s(x,**args)
+
+    return mean,error
+
+def get_U_L(magnetization,Omega):
+    '''
+    NOTE:
+
+    This function is taken from the the file
+
+    https://github.com/StefanWahl/Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions/blob/main/ScalarTheory/utils.py
+
+    of the repository 
+
+    https://github.com/StefanWahl/Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions
+
+    authored by Stefan Wahl under MIT license.
+
+    parameters:
+        magnetization:      Magnetizations used to determine the susceptibility
+        Omega:              Volume
+
+    returns:
+        U_L:                Appproximation for the Binder cumulant based in the given magnetizations.
+    '''
+
+    exp_mag_4 = np.power(magnetization / Omega,4).mean()
+    exp_mag_2 = np.power(magnetization / Omega,2).mean()
+
+    U_L = 1 - (1 / 3) * (exp_mag_4 / exp_mag_2 ** 2)
+
+    return U_L
+
+def get_susceptibility(magnetization,Omega):
+    '''
+    NOTE:
+
+    This function is taken from the the file
+
+    https://github.com/StefanWahl/Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions/blob/main/ScalarTheory/utils.py
+
+    of the repository 
+
+    https://github.com/StefanWahl/Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions
+
+    authored by Stefan Wahl under MIT license.
+
+    parameters:
+        magnetization:      Magnetizations used to determine the susceptibility
+        Omega:              Volume
+
+    returns:
+        susceptibility:     Appproximation for the susceptibility based in the given magnetizations.
+    '''
+
+    exp_mag_squared = np.power(magnetization / Omega,2).mean()
+    exp_mag = (magnetization / Omega).mean()
+
+    susceptibility = Omega * (exp_mag_squared - exp_mag**2)
+
+    return susceptibility

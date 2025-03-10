@@ -15,28 +15,34 @@ from lightning.pytorch.loggers import TensorBoardLogger
 
 from pinf.models.construct_INN_2D_GMM import set_up_sequence_INN_2D_GMM
 from pinf.models.construct_INN_2D_GMM_two_parameters import set_up_sequence_INN_2D_ToyExample_two_parameters
+from pinf.models.construct_INN_ScalarTheory import set_up_sequence_INN_ScalarTheory
 
 from pinf.datasets.datasets import (
     DataSet2DGMM,
-    DataSet_2D_ToyExample_external_two_parameters
+    DataSet_2D_ToyExample_external_two_parameters,
+    DataSetScalarTheory2D_preprocessed_data
     )
 
 from pinf.trainables.GMM import TrainingObject_2D_GMM
 from pinf.trainables.GMM_two_params import TrainingObject_2D_ToyExample_two_external_parameters
+from pinf.trainables.ScalarTheory import TrainingObject_2D_Scalar_Theory
 
 data_set_class_dict = {
     "2D_GMM":DataSet2DGMM,
-    "2D_ToyExample_two_external_parameters":DataSet_2D_ToyExample_external_two_parameters
+    "2D_ToyExample_two_external_parameters":DataSet_2D_ToyExample_external_two_parameters,
+    "DataSetScalarTheory2D_preprocessed_data":DataSetScalarTheory2D_preprocessed_data
 }
 
 INN_constructor_dict = {
     "set_up_sequence_INN_2D_GMM":set_up_sequence_INN_2D_GMM,
-    "set_up_sequence_INN_2D_ToyExample_two_parameters":set_up_sequence_INN_2D_ToyExample_two_parameters
+    "set_up_sequence_INN_2D_ToyExample_two_parameters":set_up_sequence_INN_2D_ToyExample_two_parameters,
+    "set_up_sequence_INN_ScalarTheory":set_up_sequence_INN_ScalarTheory
 }
 
 trainable_dict = {
     "2D_GMM":TrainingObject_2D_GMM,
-    "2D_ToyExample_two_external_parameters":TrainingObject_2D_ToyExample_two_external_parameters
+    "2D_ToyExample_two_external_parameters":TrainingObject_2D_ToyExample_two_external_parameters,
+    "ScalarTheory":TrainingObject_2D_Scalar_Theory
 }
 
 def get_configuration(args):

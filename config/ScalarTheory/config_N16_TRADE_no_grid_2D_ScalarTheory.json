@@ -1,0 +1,9 @@
+{   
+    "verbose":true,
+    "sub_config_files":{
+        "config_model":     "ModelConfigs/N_16/model_config_2D_ScalarTheory_mixed_coupling_blocks_N16.json",
+        "config_training":  "TrainingSetupConfigs/N_16/training_config_TRADE_no_grid_2D_ScalarTheory_N16.json",
+        "config_evaluation":"EvaluationConfigs/N_16/evaluation_config_2D_ScalarTheory_N16.json",
+        "config_data":      "DataSetConfigs/N_16/dataset_config__2D_ScalarTheory_N16.json"
+    }
+}

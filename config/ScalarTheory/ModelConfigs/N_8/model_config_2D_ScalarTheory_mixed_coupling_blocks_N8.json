@@ -1,0 +1,19 @@
+{
+    "set_up_function_name":"set_up_sequence_INN_ScalarTheory",
+    "process_beta_parameters": {
+        "activation_function_type": "SiLU",
+        "d_hidden": 32,
+        "learnable_temperature_embedding_dim": 1,
+        "mode": "learnable"
+        },
+    "use_act_norm":false,
+    "n_stages_conv":2,
+    "activation_function_type":"SiLU",
+    "n_channels_conv_hidden_list":[32,64],
+    "affine_coupling_block_number_per_stage_conv":8,
+    "affine_coupling_block_number_per_stage_fc":8,
+    "d_hidden_fc":256,
+    "d_hidden_fc_learnable_scaling":64,
+    "latent_mode":"standard_normal",
+    "fixed_global_scaling":null
+}
