@@ -350,6 +350,118 @@ def constructor_subnet_2D_conv_configured(c_hidden:int,activation_type:str)->Cal
 
     return partial(constructor_subnet_2Dconv_plain,c_hidden = c_hidden,activation_type = activation_type)
 
+
+def construct_MNIST_FC_subnet(c_in:int,c_out:int,c_hidden:int,activation_type:str):
+    """
+    Initialize a fully connected neural network.
+
+    parameters:
+        c_in:               Number of input channels
+        c_out:              Number of output channels
+        c_hidden:           Dimensionality of the hidden layers
+        activation_type:    String specifying the non-linear function 
+    
+    return:
+        layers:             Fully connected neural network
+    """
+
+    activation = activation_dict[activation_type]
+
+    layers = nn.Sequential(
+        nn.Linear(c_in, c_hidden), 
+        activation(),
+        nn.Linear(c_hidden, c_hidden), 
+        activation(),
+        nn.Linear(c_hidden, c_hidden), 
+        activation(),
+        nn.Linear(c_hidden, c_hidden), 
+        activation(),
+        nn.Linear(c_hidden, c_out)
+        )
+    
+    #Initialize the weights of the linear layers
+    for layer in layers:
+        if isinstance(layer,nn.Linear):
+            nn.init.xavier_normal_(layer.weight)
+
+    #Set the weights and the bias of the final convolution to zero
+    layers[-1].weight.data.fill_(0.0)
+    layers[-1].bias.data.fill_(0.0)
+
+    return layers
+
+def construct_MNIST_FC_subnet_configured(c_hidden:int,activation_type:str)->Callable:
+    """
+    Configure the fully connected subnet for the MNIST like data.
+    
+    parameters:
+        c_hidden:           Number of hidden channels
+        activation_type:    String specifying the non-linear function
+    
+    return:
+        subnet_constructor: Constructor for the fully connected
+    """
+
+    return partial(construct_MNIST_FC_subnet,c_hidden = c_hidden,activation_type = activation_type)
+
+
+def construct_MNIST_Conv_subnet(c_in:int,c_out:int,c_hidden:int,activation_type:str):
+
+    """
+    Initialize a convolutional neural network.
+
+    parameters:
+        c_in:               Number of input channels
+        c_out:              Number of output channels
+        c_hidden:           Dimensionality of the hidden layers
+        activation_type:    String specifying the non-linear function 
+    
+    return:
+        layers:             Fully connected neural network
+    """
+
+
+    activation = activation_dict[activation_type]
+
+    #Construct the layers
+    layers = nn.Sequential(
+        nn.Conv2d(in_channels=c_in,out_channels=c_hidden,kernel_size=3,padding=1),
+        activation(),
+        nn.Conv2d(in_channels=c_hidden,out_channels=c_hidden,kernel_size=3,padding=1),
+        activation(),
+        nn.Conv2d(in_channels=c_hidden,out_channels=c_hidden,kernel_size=3,padding=1),
+        activation(),
+        nn.Conv2d(in_channels=c_hidden,out_channels=int(c_hidden / 2),kernel_size = 1),
+        activation(),
+        nn.Conv2d(in_channels=int(c_hidden / 2),out_channels=c_out,kernel_size = 1),
+    )
+
+    #Initialize the weights of the convolutional layers
+    for layer in layers:
+        if isinstance(layer,nn.Conv2d):
+            nn.init.xavier_normal_(layer.weight)
+
+    #Set the weights and the bias of the final convolution to zero
+    layers[-1].weight.data.fill_(0.0)
+    layers[-1].bias.data.fill_(0.0)
+
+    return layers
+
+def construct_MNIST_Conv_subnet_configured(c_hidden:int,activation_type:str)->Callable:
+    """
+    Configure the convolutional subnet for the MNIST like data.
+
+    parameters:
+        c_hidden:           Number of hidden channels
+        activation_type:    String specifying the non-linear function
+    
+    return:
+        subnet_constructor: Constructor for the convolutional subnet
+    """
+    
+    return partial(construct_MNIST_Conv_subnet,c_hidden = c_hidden,activation_type = activation_type)
+
+
 ######################################################################################################################################
 # Model for condition embedding
 ######################################################################################################################################

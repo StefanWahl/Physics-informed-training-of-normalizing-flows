@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 import lightning as L
 import os
-import shutil
+from functools import partial
 import numpy as np
 import random
 import yaml
@@ -16,33 +16,39 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from pinf.models.construct_INN_2D_GMM import set_up_sequence_INN_2D_GMM
 from pinf.models.construct_INN_2D_GMM_two_parameters import set_up_sequence_INN_2D_ToyExample_two_parameters
 from pinf.models.construct_INN_ScalarTheory import set_up_sequence_INN_ScalarTheory
+from pinf.models.construct_INN_EMNIST import set_up_sequence_INN_MNIST_like
 
 from pinf.datasets.datasets import (
     DataSet2DGMM,
     DataSet_2D_ToyExample_external_two_parameters,
-    DataSetScalarTheory2D_preprocessed_data
+    DataSetScalarTheory2D_preprocessed_data,
+    get_EMNIST_datasets
     )
 
 from pinf.trainables.GMM import TrainingObject_2D_GMM
 from pinf.trainables.GMM_two_params import TrainingObject_2D_ToyExample_two_external_parameters
 from pinf.trainables.ScalarTheory import TrainingObject_2D_Scalar_Theory
+from pinf.trainables.EMNIST_digits import TrainingObject_EMNIST
 
 data_set_class_dict = {
     "2D_GMM":DataSet2DGMM,
     "2D_ToyExample_two_external_parameters":DataSet_2D_ToyExample_external_two_parameters,
-    "DataSetScalarTheory2D_preprocessed_data":DataSetScalarTheory2D_preprocessed_data
+    "DataSetScalarTheory2D_preprocessed_data":DataSetScalarTheory2D_preprocessed_data,
+    "EMNIST_digits":partial(get_EMNIST_datasets,training_data_only = True, split = "digits",data_folder = "./data/")
 }
 
 INN_constructor_dict = {
     "set_up_sequence_INN_2D_GMM":set_up_sequence_INN_2D_GMM,
     "set_up_sequence_INN_2D_ToyExample_two_parameters":set_up_sequence_INN_2D_ToyExample_two_parameters,
-    "set_up_sequence_INN_ScalarTheory":set_up_sequence_INN_ScalarTheory
+    "set_up_sequence_INN_ScalarTheory":set_up_sequence_INN_ScalarTheory,
+    "set_up_sequence_INN_MNIST_like":set_up_sequence_INN_MNIST_like
 }
 
 trainable_dict = {
     "2D_GMM":TrainingObject_2D_GMM,
     "2D_ToyExample_two_external_parameters":TrainingObject_2D_ToyExample_two_external_parameters,
-    "ScalarTheory":TrainingObject_2D_Scalar_Theory
+    "ScalarTheory":TrainingObject_2D_Scalar_Theory,
+    "EMNIST_digits":TrainingObject_EMNIST
 }
 
 def get_configuration(args):
@@ -132,7 +138,7 @@ def runner(config:dict,callbacks:list = [],load_INN_path:str = None)->L.Lightnin
     
     # Initialize the logger
     logger = TensorBoardLogger(
-                save_dir = config["logging_path"]
+        save_dir = config["logging_path"]
     )
 
     # Initialize the trainer
@@ -195,6 +201,10 @@ if __name__ == "__main__":
     elif config["config_data"]["data_set_name"] == "ScalarTheory":
         day_date = date.today()
         logging_path = f"./results/runs_ScalarTheory/{day_date}_{args.tag}_N{config['config_data']['N']}/"
+
+    elif config["config_data"]["data_set_name"] == "EMNIST_digits":
+        day_date = date.today()
+        logging_path = f"./results/runs_EMNIST_digits/{day_date}_{args.tag}/"
 
     else:
         raise ValueError("Data set not supported.")

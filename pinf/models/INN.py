@@ -4,6 +4,7 @@ from FrEIA.utils import force_to
 import torch.distributions as D
 import numpy as np
 from typing import Union,Callable,List
+import torch.nn.functional as F
 
 def _beta_processing_ignore_beta(beta_tensor:torch.tensor)-> None:
     """
@@ -17,9 +18,26 @@ def _beta_processing_log(beta_tensor:torch.tensor)-> torch.tensor:
     """
     return beta_tensor.log()
 
+def _beta_processing_one_hot(beta_tensor:torch.tensor,n_classes:int = 10)-> torch.tensor:
+    """
+    Return the one hot encoding of the input tensor.
+
+    parameters:
+        beta_tensor:    Tensor to encode
+        n_classes:      Number of classes
+    
+    return:
+        one_hot:        One hot encoding of the input tensor
+    """
+
+    one_hot =  F.one_hot(beta_tensor.squeeze(),n_classes)
+    return one_hot.float()
+
+
 _beta_processing_dict = {
     "log_beta":_beta_processing_log,
-    "ignore_beta":_beta_processing_ignore_beta
+    "ignore_beta":_beta_processing_ignore_beta,
+        "one_hot":_beta_processing_one_hot
 }
 
 ##############################################################

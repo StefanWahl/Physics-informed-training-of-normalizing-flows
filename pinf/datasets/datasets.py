@@ -1,10 +1,14 @@
 import torch
 from torch.utils.data import Dataset
-from typing import List
+from typing import List,Tuple
 import os
 import fnmatch
 import json
 import numpy as np
+import torchvision
+import torchvision.transforms as T
+
+from pinf.datasets.transformations import AddGaussianNoise
 
 ##################################################################################################
 # 2D GMM power-scaling
@@ -195,3 +199,75 @@ class DataSetScalarTheory2D_preprocessed_data(Dataset):
     def __getitem__(self, index:int):
         image = self.data[index] + torch.randn_like(self.data[index]) * self.sigma_noise
         return self.kappa_action[index],self.lambda_action[index],image
+
+##################################################################################################
+# EMNIST
+##################################################################################################
+
+def get_EMNIST_datasets(data_folder:str,split:str,sigma_dequantization:float,mean_normalization:float,scale_normalization:float,training_data_only:bool = False)->Tuple[Dataset,Dataset]:
+    """
+    Get the training and validation datasets for the EMNIST digits dataset.
+
+    parameters:
+        data_folder:            Folder to store the data
+        split:                  "letters" or "digits" depending on which split is used
+        sigma_dequantization:   Standard deviation of the dequantization noise
+        mean_normalization:     Mean of the normalization
+        scale_normalization:    Scale of the normalization
+        training_data_only:     Only return the training data set
+
+    return:
+        DS_training:    Training dataset
+        DS_validation:  Validation dataset
+    """
+
+    # Transformations for the training and validation data
+
+    # Add dequantization noise to the training data
+    transform_training_list = [
+        T.ToTensor(),
+        T.Lambda(lambda x: x.view(1, 28, 28)),
+        T.Lambda(lambda x: (x - mean_normalization) / scale_normalization),
+        AddGaussianNoise(std=sigma_dequantization),
+        ]
+    
+    # No dequatization noise for the validation data
+    transform_validation_list = [
+        T.ToTensor(),
+        T.Lambda(lambda x: x.view(1, 28, 28)),
+        T.Lambda(lambda x: (x - mean_normalization) / scale_normalization)
+        ]
+
+    # Make class labels zero based for letters
+    if split == "letters":
+        target_transform = T.Lambda(lambda x: (x - 1))
+
+    else:
+        target_transform = None
+
+    # Get the training data set
+    transform_training = T.Compose(transform_training_list)
+    DS_training = torchvision.datasets.EMNIST(
+        root = data_folder, 
+        train = True, 
+        download = True,
+        transform=transform_training,
+        split = split,
+        target_transform = target_transform
+        )
+
+    # Get the validation data set
+    transform_validation = T.Compose(transform_validation_list)
+    DS_validation = torchvision.datasets.EMNIST(
+        root = data_folder, 
+        train = False, 
+        download = True,
+        transform=transform_validation,
+        split = split,
+        target_transform = target_transform
+        )
+
+    if training_data_only:
+        return DS_training
+    else:
+        return DS_training,DS_validation

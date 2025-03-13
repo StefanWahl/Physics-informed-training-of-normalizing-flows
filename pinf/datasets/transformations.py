@@ -42,3 +42,44 @@ class RandomVerticalRoll(torch.nn.Module):
         img_new = torch.roll(img, shifts = steps, dims = -2)
 
         return img_new
+
+class AddGaussianNoise(object):
+    """
+    Add Gaussian noise to the input tensor.
+    """
+
+    def __init__(self,std,mean = 0) -> None:
+        """
+        parameters:
+            std:    Standard deviation of the Gaussian noise
+            mean:   Mean of the Gaussian noise
+        """
+
+        self.mean = mean
+        self.std = std
+
+    def __call__(self,x):
+        """
+        Add Gaussian noise to the input tensor.
+
+        parameters:
+            x:  Input tensor
+        
+        return:
+            y:  Input tensor with added Gaussian noise
+        """
+        
+        r = self.mean + self.std * torch.randn_like(x)
+        y = x + r      
+
+        return y
+    
+    def __repr__(self) -> str:
+        """
+        String representation of the object.
+
+        return:
+            String representation of the object
+        """
+
+        return f"{self.__class__.__name__}(mean={self.mean}, std={self.std})"

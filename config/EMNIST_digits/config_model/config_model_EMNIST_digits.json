@@ -1,0 +1,15 @@
+{
+    "conditional": true,
+    "n_stages_conv":2,
+    "n_channels_conv_hidden_list":[32,64],
+    "coupling_block_number_per_stage_conv":25,
+    "use_act_norm":false,
+    "coupling_block_params":{
+        "permute_soft":true
+    },
+    "set_up_function_name":"set_up_sequence_INN_MNIST_like",
+    "coupling_block_type":"AllInOne",
+    "coupling_block_number_per_stage_fc":5,
+    "d_hidden_fc":512,
+    "activation_function_type":"GeLU"
+}

@@ -1,0 +1,8 @@
+{
+    "sub_config_files":{
+        "config_model":"config_model/config_model_EMNIST_digits.json",
+        "config_data":"config_data/config_dataset_EMNIST_digits.json",
+        "config_training":"config_training/config_training_EMNIST_digits.json",
+        "config_evaluation":"config_evaluation/config_evaluation_EMNIST_digits.json"
+    }
+}
