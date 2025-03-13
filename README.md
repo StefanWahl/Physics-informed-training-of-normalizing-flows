@@ -53,10 +53,10 @@ python3 Simulation_Scalar_Theory.py --N 8 --kappa_min 0.2 --kappa_max 0.4 --dkap
 After the the simulation has terminated, return to the root folder of the repository and postprocess the recorded data.
 
 ```shell script
-python3 create_data/ScalarTheory_create_combined_datasets.py --source ./Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions/ScalarTheory/Scalar_Theory/N_8_LANGEVIN_SPECIFIC_Data_Set/ --destination ./data/ScalarTheory/training_data/
+python3 create_data/ScalarTheory_create_combined_datasets.py --source ./Applying-Energy-Based-Models-on-the-Ising-model-and-a-scalar-lattice-field-theory-in-two-dimensions/ScalarTheory/ScalarTheory/N_8_LANGEVIN_SPECIFIC_Data_Set/ --destination ./data/ScalarTheory/training_data/
 ```
 
-Afterwards remove the original results of the simulations. In total, for a given lattice size, three runs have to be conducted: One to generate a training set (Use `./data/ScalarTheory/training_data/` as destination), One to generate a validation set (Use `./data/ScalarTheory/validation_data/` as destination) and one to generate a reference simulation. For the reference simulation, set `--record 0` in the simulation and choose a smaller `--dkappa`. Copy the result of this simulation directly into the folder `./data/ScalarTheory/training_data/`. Use different random seeds `--seed` for the generation of training and validation data.
+Afterwards, remove the original results of the simulations. In total, for a given lattice size, three runs have to be conducted: One to generate a training set (Use `./data/ScalarTheory/training_data/` as destination), One to generate a validation set (Use `./data/ScalarTheory/validation_data/` as destination) and one to generate a reference simulation. For the reference simulation, set `--record 0` in the simulation and choose a smaller `--dkappa`. Copy the result of this simulation directly into the folder `./data/ScalarTheory/training_data/`. Use different random seeds `--seed` for the generation of training and validation data.
 
 ## Evaluation of traind models
 
