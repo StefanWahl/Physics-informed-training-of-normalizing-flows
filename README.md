@@ -58,7 +58,7 @@ python3 create_data/ScalarTheory_create_combined_datasets.py --source ./Applying
 
 Afterwards, remove the original results of the simulations. In total, for a given lattice size, three runs have to be conducted: One to generate a training set (Use `./data/ScalarTheory/training_data/` as destination), One to generate a validation set (Use `./data/ScalarTheory/validation_data/` as destination) and one to generate a reference simulation. For the reference simulation, set `--record 0` in the simulation and choose a smaller `--dkappa`. Copy the result of this simulation directly into the folder `./data/ScalarTheory/training_data/`. Use different random seeds `--seed` for the generation of training and validation data.
 
-## Trainin of normalizing flows
+## Training of normalizing flows
 
 To train a new normalizing flow can be trained using `train.py`:
 
