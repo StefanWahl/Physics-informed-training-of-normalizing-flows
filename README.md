@@ -58,6 +58,15 @@ python3 create_data/ScalarTheory_create_combined_datasets.py --source ./Applying
 
 Afterwards, remove the original results of the simulations. In total, for a given lattice size, three runs have to be conducted: One to generate a training set (Use `./data/ScalarTheory/training_data/` as destination), One to generate a validation set (Use `./data/ScalarTheory/validation_data/` as destination) and one to generate a reference simulation. For the reference simulation, set `--record 0` in the simulation and choose a smaller `--dkappa`. Copy the result of this simulation directly into the folder `./data/ScalarTheory/training_data/`. Use different random seeds `--seed` for the generation of training and validation data.
 
+## Trainin of normalizing flows
+
+To train a new normalizing flow can be trained using `train.py`:
+
+
+```shell script
+python3 train.py --tag <Your experiment name> --config_path ./config/<data set name>/config_<experiment>.json
+```
+
 ## Evaluation of traind models
 
 To evaluate the trained models use the file `plot.ipynb` in the respective folder in `./evaluation/`. In the case of the evaluation of the models trained for the scalar lattice theory run the evaluation script in advance:
