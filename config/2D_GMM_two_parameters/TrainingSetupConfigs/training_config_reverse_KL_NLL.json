@@ -25,5 +25,5 @@
     "adaptive_weighting":true,
     "regularization_data_free_start":40,
     "regularization_data_free_full":600,
-    "fixed_relative_weighting":0.25
+    "fixed_relative_weighting":0.5
 }
