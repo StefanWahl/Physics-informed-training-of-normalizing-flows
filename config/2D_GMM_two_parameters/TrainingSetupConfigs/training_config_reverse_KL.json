@@ -13,7 +13,7 @@
     "loss_model_params":{
         "parameter_limit_list":[[0.1,0.9],[0.25,4.0]],
         "sample_param_in_log_space_list":[false,true],
-        "bs":512
+        "bs":3000
     },
     "optimizer_type":"Adam",
     "random_seed":0,
