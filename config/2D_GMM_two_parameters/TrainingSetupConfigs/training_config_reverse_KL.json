@@ -1,5 +1,5 @@
 {
-    "lr":1e-4,
+    "lr":5e-5,
     "lr_scheduler_config":{
         "mode":"oneCycle"
     },
@@ -17,5 +17,5 @@
     },
     "optimizer_type":"Adam",
     "random_seed":0,
-    "gradient_clip_val":2.0
+    "gradient_clip_val":0.5
 }
