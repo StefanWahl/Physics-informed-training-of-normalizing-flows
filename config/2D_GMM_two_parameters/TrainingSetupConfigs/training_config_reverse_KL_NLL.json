@@ -2,7 +2,7 @@
     "lr":1e-4,
     "lr_scheduler_config":{
         "epochs_per_cycle": [40, 560], 
-        "lr_decay_factors": [0.5], 
+        "lr_decay_factors": [2.0], 
         "mode": "multiCycle"
     },
     "use_nll_loss":true,
